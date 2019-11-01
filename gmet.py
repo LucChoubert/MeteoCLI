@@ -20,7 +20,8 @@ def parse() :
     parser = argparse.ArgumentParser(description='Command Line utility to access Meteo data from various sources')
     parser.add_argument('offset', nargs='*', type=int, help='offset in days compared to today, i.e. 0 means today, 1 means tomorrow,...')
     parser.add_argument('--city', '-c', dest='city', help='cityname, if no value is provided, automatically guessed via the geolocalized IP adress')
-    parser.add_argument('--summary', '-s', dest='summary', action='store_true', help='summary view, i.e. gives all data received from server in a synthetic way')
+    parser.add_argument('--summary', '-s', dest='summary', action='count', help='summary view, i.e. gives all data received from server in a synthetic way')
+    parser.add_argument('--version', '-v', action='version', version='%(prog)s 0.9')
     return parser.parse_args()
 
 
@@ -65,35 +66,44 @@ def formatOutput(iConfig, iData):
         if datetime.datetime.now().hour>16:
             iConfig.offset.append(1)
     myRange = range(min(iConfig.offset), max(iConfig.offset)+1)
+    
+    displayCondensed = False
     if iConfig.summary:
         #Display the 10 days of daily prevision in resumes section
         myRange = range(0, 100)
+        if iConfig.summary > 1:
+            displayCondensed = True
 
     #Do the actual display
     for i in myRange:
         keyResumes = str(i)+'_resume'
         if keyResumes in iData['result']['resumes']:
             timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
-            print(CGREEN + "\n{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']) + CEND)
+            print(CGREEN + "{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']) + CEND)
 
-        #Then, display the prevision "by range matin, midi, soir, nuit" in previsions section
-        for r in ['matin', 'midi', 'soir', 'nuit']:
-            keyPrevisions = str(i)+'_'+r
-            if keyPrevisions in iData['result']['previsions']:
-                print(' -> {:>5} | {:<17} | T: {:^6}| V: {:<3}'.format(r, iData['result']['previsions'][keyPrevisions]['description'], iData['result']['previsions'][keyPrevisions]['temperatureCarte'], iData['result']['previsions'][keyPrevisions]['vitesseVent']))
-                l = []
-                if r == 'matin':
-                    l = [str(i) + '_' + x for x in ['07-10', '10-13']]
-                if r == 'midi':
-                    l = [str(i) + '_' + x for x in ['13-16', '16-19']]
-                if r == 'soir':
-                    l = [str(i) + '_' + x for x in ['19-22']]
-                if r == 'nuit':
-                    l = [str(i) + '_' + x for x in ['22-01']] + [str(i+1) + '_' + x for x in ['01-04', '04-07']]                
+        if not displayCondensed:
+            #Then, display the prevision "by range matin, midi, soir, nuit" in previsions section
+            for r in ['matin', 'midi', 'soir', 'nuit']:
+                keyPrevisions = str(i)+'_'+r
+                if keyPrevisions in iData['result']['previsions']:
+                    detailDisplayed = False
+                    l = []
+                    if r == 'matin':
+                        l = [str(i) + '_' + x for x in ['07-10', '10-13']]
+                    if r == 'midi':
+                        l = [str(i) + '_' + x for x in ['13-16', '16-19']]
+                    if r == 'soir':
+                        l = [str(i) + '_' + x for x in ['19-22']]
+                    if r == 'nuit':
+                        l = [str(i) + '_' + x for x in ['22-01']] + [str(i+1) + '_' + x for x in ['01-04', '04-07']]                
                 
-                for keyPrevisions48h in l:
-                    if keyPrevisions48h in iData['result']['previsions48h']:
-                        print('  * {:>5} | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[2:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
+                    for keyPrevisions48h in l:
+                        if keyPrevisions48h in iData['result']['previsions48h']:
+                            print('  * {:>5} | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[2:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
+                            detailDisplayed = True
+
+                    if not detailDisplayed:
+                        print(' -> {:>5} | {:<17} | T: {:^6}| V: {:<3}'.format(r, iData['result']['previsions'][keyPrevisions]['description'], iData['result']['previsions'][keyPrevisions]['temperatureCarte'], iData['result']['previsions'][keyPrevisions]['vitesseVent']))
 
 #Main function
 if __name__ == '__main__':
@@ -106,6 +116,6 @@ if __name__ == '__main__':
         data['city'] = args.city
     data['insee'], data['zip'], data['country'] = getInseeCode(data['city'])
 
-    print(CFLASH + '\n-- Meteo forecast -- {} ({}) --'.format(data['city'],data['country']) + '                        ' + CEND)    
+    print(CFLASH + '-- Meteo forecast -- {} ({}) --'.format(data['city'],data['country']) + '                        ' + CEND)    
     data = getDataFromMeteoFranceAPI(data['insee'])
     formatOutput(args, data)
