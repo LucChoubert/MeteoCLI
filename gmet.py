@@ -56,19 +56,32 @@ def formatOutput(iConfig, iData):
     #print(timeString + " T-Min:{1} T-Max:{2} Météo: {0}".format(iData['result']['resumes']['0_resume']['description'],iData['result']['resumes']['0_resume']['temperatureMin'],iData['result']['resumes']['0_resume']['temperatureMax']))
     myRange = range(iConfig.offset, iConfig.offset+1)
     if iConfig.summary:
+        #Display the 10 days of daily prevision in resumes section
         myRange = range(0, 100)
     for i in myRange:
-        #Display the 10 days of daily prevision in resumes section
         keyResumes = str(i)+'_resume'
         if keyResumes in iData['result']['resumes']:
-            timeString = time.strftime("%a-%d%b", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
-            print("{} T-Min:{} T-Max:{} Météo: {}".format(timeString, iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax'], iData['result']['resumes'][keyResumes]['description']))
+            timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
+            print("\n{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']))
 
         #Then, display the prevision "by range matin, midi, soir, nuit" in previsions section
         for r in ['matin', 'midi', 'soir', 'nuit']:
             keyPrevisions = str(i)+'_'+r
             if keyPrevisions in iData['result']['previsions']:
-                print('{:>9} T-Min:{} T-Max:{} Météo: {}'.format(r, iData['result']['previsions'][keyPrevisions]['temperatureMin'], iData['result']['previsions'][keyPrevisions]['temperatureMax'], iData['result']['previsions'][keyPrevisions]['description']))
+                print(' -> {:>5} | {:<17} | T: {:^6}| V: {:<3}'.format(r, iData['result']['previsions'][keyPrevisions]['description'], iData['result']['previsions'][keyPrevisions]['temperatureCarte'], iData['result']['previsions'][keyPrevisions]['vitesseVent']))
+                l = []
+                if r == 'matin':
+                    l = [str(i) + '_' + x for x in ['07-10', '10-13']]
+                if r == 'midi':
+                    l = [str(i) + '_' + x for x in ['13-16', '16-19']]
+                if r == 'soir':
+                    l = [str(i) + '_' + x for x in ['19-22']]
+                if r == 'nuit':
+                    l = [str(i) + '_' + x for x in ['22-01']] + [str(i+1) + '_' + x for x in ['01-04', '04-07']]                
+                
+                for keyPrevisions48h in l:
+                    if keyPrevisions48h in iData['result']['previsions48h']:
+                        print('  *{:>5} | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[1:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
 
 #Main function
 if __name__ == '__main__':
