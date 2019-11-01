@@ -1,4 +1,5 @@
 #Import list
+import re
 import json
 import time
 import datetime
@@ -6,8 +7,10 @@ import argparse
 from urllib.request import urlopen
 
 #Color definitions
-CFLASH =  '\033[7m' # Flashing Text
-CGREEN =  '\033[32m' # Green Text
+CFLASH =  '\033[7;1m' # White Background, Bold black Text
+CGREEN =  '\033[32;1m' # Green Bold Text
+CORANGE =  '\033[33;1m' # Orange Bold Text
+CBLUE =  '\033[34;1m' # Blue Bold Text
 CEND = '\033[0m' # reset to the defaults
 
 #parse options
@@ -79,8 +82,20 @@ def formatOutput(iConfig, iData):
         keyResumes = str(i)+'_resume'
         if keyResumes in iData['result']['resumes']:
             timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
-            print(CGREEN + "{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']) + CEND)
+            #TODO: Change the color Orange/Blue/Green based on the prevision (sun or rain) available in variable iData['result']['resumes'][keyResumes]['description']
+            #BLUE if contains pluie or averse
+            #ORANGE if contains soleil or ??
+            #GREEN otherwise
+            COLOR = CGREEN
+            if re.match('pluie', iData['result']['resumes'][keyResumes]['description'].lower()):
+                COLOR = CBLUE
+            if re.match('averse', iData['result']['resumes'][keyResumes]['description'].lower()):
+                COLOR = CBLUE
+            if re.match('soleil', iData['result']['resumes'][keyResumes]['description'].lower()):
+                COLOR = CORANGE
+            print(COLOR + "{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']) + CEND)
 
+        # This boolean test if the display should be a super condensed one keeping only values at day level
         if not displayCondensed:
             #Then, display the prevision "by range matin, midi, soir, nuit" in previsions section
             for r in ['matin', 'midi', 'soir', 'nuit']:
@@ -119,3 +134,4 @@ if __name__ == '__main__':
     print(CFLASH + '-- Meteo forecast -- {} ({}) --'.format(data['city'],data['country']) + '                        ' + CEND)    
     data = getDataFromMeteoFranceAPI(data['insee'])
     formatOutput(args, data)
+
