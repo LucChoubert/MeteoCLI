@@ -1,8 +1,14 @@
 #Import list
 import json
 import time
+import datetime
 import argparse
 from urllib.request import urlopen
+
+#Color definitions
+CFLASH =  '\033[7m' # Flashing Text
+CGREEN =  '\033[32m' # Green Text
+CEND = '\033[0m' # reset to the defaults
 
 #parse options
 #-c cityname / default is geolocalized
@@ -12,8 +18,8 @@ from urllib.request import urlopen
 #-h print this help
 def parse() :
     parser = argparse.ArgumentParser(description='Command Line utility to access Meteo data from various sources')
+    parser.add_argument('offset', nargs='*', type=int, help='offset in days compared to today, i.e. 0 means today, 1 means tomorrow,...')
     parser.add_argument('--city', '-c', dest='city', help='cityname, if no value is provided, automatically guessed via the geolocalized IP adress')
-    parser.add_argument('--offset', '-o', dest='offset', type=int, default=0, help='offset in days compared to today, i.e. 0 means today, 1 means tomorrow,...')
     parser.add_argument('--summary', '-s', dest='summary', action='store_true', help='summary view, i.e. gives all data received from server in a synthetic way')
     return parser.parse_args()
 
@@ -51,18 +57,24 @@ def getDataFromMeteoFranceAPI( iCityInseeCode ):
     data = json.load(response)
     return data
 
+#Build the right output screen with details at day level, period level, and range of our level, refining data when available
 def formatOutput(iConfig, iData):
-    #timeString = time.strftime("%d %b %Y, %a", time.gmtime(iData['result']['resumes']['0_resume']['date'] / 1000))
-    #print(timeString + " T-Min:{1} T-Max:{2} Météo: {0}".format(iData['result']['resumes']['0_resume']['description'],iData['result']['resumes']['0_resume']['temperatureMin'],iData['result']['resumes']['0_resume']['temperatureMax']))
-    myRange = range(iConfig.offset, iConfig.offset+1)
+    #Define range of date to display base on command line inputs
+    if not iConfig.offset:
+        iConfig.offset.append(0)
+        if datetime.datetime.now().hour>16:
+            iConfig.offset.append(1)
+    myRange = range(min(iConfig.offset), max(iConfig.offset)+1)
     if iConfig.summary:
         #Display the 10 days of daily prevision in resumes section
         myRange = range(0, 100)
+
+    #Do the actual display
     for i in myRange:
         keyResumes = str(i)+'_resume'
         if keyResumes in iData['result']['resumes']:
             timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
-            print("\n{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']))
+            print(CGREEN + "\n{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']) + CEND)
 
         #Then, display the prevision "by range matin, midi, soir, nuit" in previsions section
         for r in ['matin', 'midi', 'soir', 'nuit']:
@@ -81,7 +93,7 @@ def formatOutput(iConfig, iData):
                 
                 for keyPrevisions48h in l:
                     if keyPrevisions48h in iData['result']['previsions48h']:
-                        print('  *{:>5} | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[1:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
+                        print('  * {:>5} | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[2:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
 
 #Main function
 if __name__ == '__main__':
@@ -94,6 +106,6 @@ if __name__ == '__main__':
         data['city'] = args.city
     data['insee'], data['zip'], data['country'] = getInseeCode(data['city'])
 
-    print('Meteo forecast -- City: {0}  Zip: {1}  Insee: {2}  Country: {3}'.format(data['city'],data['zip'],data['insee'],data['country']))    
+    print(CFLASH + '\n-- Meteo forecast -- {} ({}) --'.format(data['city'],data['country']) + '                        ' + CEND)    
     data = getDataFromMeteoFranceAPI(data['insee'])
     formatOutput(args, data)
