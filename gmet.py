@@ -87,11 +87,11 @@ def formatOutput(iConfig, iData):
             #ORANGE if contains soleil or ??
             #GREEN otherwise
             COLOR = CGREEN
-            if re.match('pluie', iData['result']['resumes'][keyResumes]['description'].lower()):
+            if re.search('pluie', iData['result']['resumes'][keyResumes]['description'].lower()):
                 COLOR = CBLUE
-            if re.match('averse', iData['result']['resumes'][keyResumes]['description'].lower()):
+            if re.search('averse', iData['result']['resumes'][keyResumes]['description'].lower()):
                 COLOR = CBLUE
-            if re.match('soleil', iData['result']['resumes'][keyResumes]['description'].lower()):
+            if re.search('soleil', iData['result']['resumes'][keyResumes]['description'].lower()):
                 COLOR = CORANGE
             print(COLOR + "{} | {:<17} | T: {:>2}-{:>2}".format(timeString, iData['result']['resumes'][keyResumes]['description'], iData['result']['resumes'][keyResumes]['temperatureMin'], iData['result']['resumes'][keyResumes]['temperatureMax']) + CEND)
 
