@@ -4,6 +4,7 @@ import json
 import time
 import datetime
 import argparse
+import logging
 from urllib.request import urlopen
 
 #Color definitions
@@ -24,6 +25,7 @@ def parse() :
     parser.add_argument('offset', nargs='*', type=int, help='offset in days compared to today, i.e. 0 means today, 1 means tomorrow,...')
     parser.add_argument('--city', '-c', dest='city', help='cityname, if no value is provided, automatically guessed via the geolocalized IP adress')
     parser.add_argument('--summary', '-s', dest='summary', action='count', help='summary view, i.e. gives all data received from server in a synthetic way')
+    parser.add_argument('--log', '-l', metavar='log_level', dest='loglevel', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], default='INFO', help='set the log level DEBUG, INFO, WARNING, ERROR or CRITICAL')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s 0.9')
     return parser.parse_args()
 
@@ -48,10 +50,22 @@ def getInseeCode(iCityName):
     url = 'http://ws.meteofrance.com/ws/getLieux/' + iCityName + '.json'
     response = urlopen(url)
     data = json.load(response)
-    if ( len(data['result']['france']) == 1):
-        return data['result']['france'][0]['indicatif'], data['result']['france'][0]['codePostal'], data['result']['france'][0]['pays']
+    logging.debug("API answer\n" + json.dumps(data))
+    if ( len(data['result']['france']) == 0):
+        logging.error('Error - Input City name is unknown: '+iCityName)
+        raise ValueError('Error - Input City name is unknown: '+iCityName)
     else:
-        print('Error - too many or too few Insee code for this city name')
+        #The following code support case where one insee code is returned or when several are returned like in antibes
+        candidate_list = {}
+        for e in data['result']['france']:
+            if (e['codePostal'] not in candidate_list) or (e['nom']==iCityName):
+                candidate_list[e['codePostal']] = [e['indicatif'], e['nom'], e['codePostal'], e['nomDept'],e['numDept'], e['pays']]
+        if len(candidate_list) > 1:
+            logging.warning("More than one city correspond to that name, meteo retrieved from 1st one only. Use inseecode argument to change it")
+            for e in candidate_list:
+                logging.warning(candidate_list[e])
+        k = list(candidate_list)[0]
+        return candidate_list[k]
 
 #function to get meteo data from MeteoFrance
 def getDataFromMeteoFranceAPI( iCityInseeCode ):
@@ -122,16 +136,31 @@ def formatOutput(iConfig, iData):
 
 #Main function
 if __name__ == '__main__':
+
     args = parse()
+
+    logging.basicConfig(format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s',
+                    datefmt='%d/%m/%Y %H:%M:%S',
+    #                filename=args.log_file,
+                    level=args.loglevel)
+
     data = {}
     if args.city is None:
+        logging.debug("No city, trying to localize")
         data = localize()
+        logging.debug(data)
     else:
         data['ip'] = None
         data['city'] = args.city
-    data['insee'], data['zip'], data['country'] = getInseeCode(data['city'])
 
-    print(CFLASH + '-- Meteo forecast -- {} ({}) --'.format(data['city'],data['country']) + '                        ' + CEND)    
-    data = getDataFromMeteoFranceAPI(data['insee'])
-    formatOutput(args, data)
+    try:
+        data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'])
 
+        print(CFLASH + '-- Meteo forecast -- {} ({} - {}) --'.format(data['city'],data['depNum'],data['country']) + '                        ' + CEND)    
+        data = getDataFromMeteoFranceAPI(data['insee'])
+        formatOutput(args, data)
+        exit(0)
+
+    except:
+        logging.debug("Exception Catched")
+        exit(1)
