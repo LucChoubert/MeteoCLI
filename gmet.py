@@ -51,7 +51,7 @@ def getInseeCode(iCityName, iInseeCode=None):
     url = 'http://ws.meteofrance.com/ws/getLieux/' + iCityName + '.json'
     response = urlopen(url)
     data = json.load(response)
-    logging.debug("API answer\n" + json.dumps(data))
+    logging.debug("meteofrance getLieux API answer\n" + json.dumps(data))
     if ( len(data['result']['france']) == 0):
         logging.error('Error - Input City name is unknown: '+iCityName)
         raise ValueError('Error - Input City name is unknown: '+iCityName)
@@ -87,10 +87,14 @@ def getDataFromMeteoFranceAPI( iCityInseeCode ):
     url = 'http://ws.meteofrance.com/ws/getDetail/france/' + iCityInseeCode + '.json'
     response = urlopen(url)
     data = json.load(response)
+    logging.debug("meteofrance getDetail API answer\n" + json.dumps(data))
     return data
 
 #Build the right output screen with details at day level, period level, and range of our level, refining data when available
-def formatOutput(iConfig, iData):
+def formatOutputForTerminal(iConfig, iData):
+    #Print header
+    print(CFLASH + '-- Meteo forecast -- {} ({} - {}) --'.format(iData['result']['ville']['nom'],iData['result']['ville']['numDept'],iData['result']['ville']['pays']) + '                        ' + CEND)
+
     #Define range of date to display base on command line inputs
     if not iConfig.offset:
         iConfig.offset.append(0)
@@ -148,35 +152,40 @@ def formatOutput(iConfig, iData):
                     if not detailDisplayed:
                         print(' -> {:>5} | {:<17} | T: {:^6}| V: {:<3}'.format(r, iData['result']['previsions'][keyPrevisions]['description'], iData['result']['previsions'][keyPrevisions]['temperatureCarte'], iData['result']['previsions'][keyPrevisions]['vitesseVent']))
 
+def executeScript(iArgs):
+    data = {}
+    if iArgs.city is None:
+        logging.debug("No city, trying to localize")
+        data = localize()
+        logging.debug(data)
+    else:
+        data['ip'] = None
+        data['city'] = iArgs.city
+
+
+    data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], iArgs.inseecode)
+    data = getDataFromMeteoFranceAPI(data['insee'])
+    formatOutputForTerminal(args, data)
+
+
 #Main function
 if __name__ == '__main__':
 
     args = parse()
 
+    #Below format is more for server / long running process like a daemon
     #log_format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s'
+
+    #Below format is more for a short living script
     log_format='%(levelname)s:%(message)s'
     logging.basicConfig(format=log_format,
                         datefmt='%d/%m/%Y %H:%M:%S',
     #                   filename=args.log_file,
                         level=args.loglevel)
 
-    data = {}
-    if args.city is None:
-        logging.debug("No city, trying to localize")
-        data = localize()
-        logging.debug(data)
-    else:
-        data['ip'] = None
-        data['city'] = args.city
-
     try:
-        data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], args.inseecode)
-
-        print(CFLASH + '-- Meteo forecast -- {} ({} - {}) --'.format(data['city'],data['depNum'],data['country']) + '                        ' + CEND)    
-        data = getDataFromMeteoFranceAPI(data['insee'])
-        formatOutput(args, data)
+        executeScript(args)
         exit(0)
-
     except ValueError as error:
         logging.debug("Exception Catched:"+str(type(error)))
         exit(1)
