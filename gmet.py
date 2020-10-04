@@ -23,7 +23,8 @@ CEND = '\033[0m' # reset to the defaults
 def parse() :
     parser = argparse.ArgumentParser(description='Command Line utility to access Meteo data from various sources')
     parser.add_argument('offset', nargs='*', type=int, help='offset in days compared to today, i.e. 0 means today, 1 means tomorrow,...')
-    parser.add_argument('--city', '-c', dest='city', help='cityname, if no value is provided, automatically guessed via the geolocalized IP adress')
+    parser.add_argument('--city', '-c', dest='city', help='the City name for which we want weather forecast, if no value is provided, automatically guessed via the geolocalized IP adress')
+    parser.add_argument('--inseecode', '-ic', dest='inseecode', default=None, help='the Insee Code of the city, this option is to be used in case of ambiguity, when the city name provided, or guessed by ip localisation match with more than one city name')
     parser.add_argument('--summary', '-s', dest='summary', action='count', help='summary view, i.e. gives all data received from server in a synthetic way')
     parser.add_argument('--log', '-l', metavar='log_level', dest='loglevel', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], default='INFO', help='set the log level DEBUG, INFO, WARNING, ERROR or CRITICAL')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s 0.9')
@@ -46,7 +47,7 @@ def localize() :
 
 #function to get INSEE code of the city
 #TODO: error management vie exception
-def getInseeCode(iCityName):
+def getInseeCode(iCityName, iInseeCode=None):
     url = 'http://ws.meteofrance.com/ws/getLieux/' + iCityName + '.json'
     response = urlopen(url)
     data = json.load(response)
@@ -56,14 +57,27 @@ def getInseeCode(iCityName):
         raise ValueError('Error - Input City name is unknown: '+iCityName)
     else:
         #The following code support case where one insee code is returned or when several are returned like in antibes
+        #In case of ambiguity, libe with bordeaux, the additional iInseeCode may be used if provided, if not, firt one is used and the rest are logged
+        k=None
         candidate_list = {}
+
         for e in data['result']['france']:
+            #Regroup by code postal to see if there is only one at the end, works well for antibes. Also use iInseeCode to filter out those not wished
             if (e['codePostal'] not in candidate_list) or (e['nom']==iCityName):
-                candidate_list[e['codePostal']] = [e['indicatif'], e['nom'], e['codePostal'], e['nomDept'],e['numDept'], e['pays']]
+                if iInseeCode==None or e['indicatif'] == iInseeCode:
+                    candidate_list[e['codePostal']] = [e['indicatif'], e['nom'], e['codePostal'], e['nomDept'],e['numDept'], e['pays']]
+
+        if ( len(candidate_list) == 0):
+            logging.error('Error - Input Insee code is not compatible with City name: '+iCityName+' vs '+iInseeCode)
+            raise ValueError('Error - Input Insee code is not compatible with City name: '+iCityName+' vs '+iInseeCode)
+
         if len(candidate_list) > 1:
+            #More than one city is matching: log all choices and select arbitrarily the first one
             logging.warning("More than one city correspond to that name, meteo retrieved from 1st one only. Use inseecode argument to change it")
+            logging.warning("InseeCode - City - Zip Code - Department Name")
             for e in candidate_list:
-                logging.warning(candidate_list[e])
+                logging.warning(candidate_list[e][0]+' - '+candidate_list[e][1]+' - '+candidate_list[e][2]+' - '+candidate_list[e][3])
+
         k = list(candidate_list)[0]
         return candidate_list[k]
 
@@ -139,10 +153,12 @@ if __name__ == '__main__':
 
     args = parse()
 
-    logging.basicConfig(format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s',
-                    datefmt='%d/%m/%Y %H:%M:%S',
-    #                filename=args.log_file,
-                    level=args.loglevel)
+    #log_format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s'
+    log_format='%(levelname)s:%(message)s'
+    logging.basicConfig(format=log_format,
+                        datefmt='%d/%m/%Y %H:%M:%S',
+    #                   filename=args.log_file,
+                        level=args.loglevel)
 
     data = {}
     if args.city is None:
@@ -154,13 +170,13 @@ if __name__ == '__main__':
         data['city'] = args.city
 
     try:
-        data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'])
+        data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], args.inseecode)
 
         print(CFLASH + '-- Meteo forecast -- {} ({} - {}) --'.format(data['city'],data['depNum'],data['country']) + '                        ' + CEND)    
         data = getDataFromMeteoFranceAPI(data['insee'])
         formatOutput(args, data)
         exit(0)
 
-    except:
-        logging.debug("Exception Catched")
+    except ValueError as error:
+        logging.debug("Exception Catched:"+str(type(error)))
         exit(1)
