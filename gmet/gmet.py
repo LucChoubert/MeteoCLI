@@ -1,4 +1,3 @@
-#Import list
 import re
 import json
 import time
@@ -40,7 +39,7 @@ def localize() :
     d = dict()
     d['ip'] = data['ip']
     d['city'] = data['city']
-    d['zip']   = data['postal']
+    d['zip'] = data['postal']
     d['country'] = data['country']
 
     return d
@@ -165,12 +164,14 @@ def executeScript(iArgs):
 
     data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], iArgs.inseecode)
     data = getDataFromMeteoFranceAPI(data['insee'])
-    formatOutputForTerminal(args, data)
+    formatOutputForTerminal(iArgs, data)
 
+# example of dummy function to test pytest
+def func(x):
+    return x + 1
 
-#Main function
-if __name__ == '__main__':
-
+def run():
+    #Decode command line options
     args = parse()
 
     #Below format is more for server / long running process like a daemon

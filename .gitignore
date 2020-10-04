@@ -1,2 +1,9 @@
 venv
 .vscode
+gmet/gmet.pyc
+gmet/__init__.pyc
+gmet/__pycache__/__init__.cpython-38.pyc
+gmet/__pycache__/__main__.cpython-38.pyc
+gmet/__pycache__/gmet.cpython-38.pyc
+gmet/tests/__pycache__/__init__.cpython-38.pyc
+gmet/tests/__pycache__/test_gmet.cpython-38-PYTEST.pyc
