@@ -166,7 +166,7 @@ def executeScript(iArgs):
     data = getDataFromMeteoFranceAPI(data['insee'])
     formatOutputForTerminal(iArgs, data)
 
-# example of dummy function to test pytest
+# Example of dummy function to test pytest - TO BE REMOVED ONCE pytest well integrated
 def func(x):
     return x + 1
 
