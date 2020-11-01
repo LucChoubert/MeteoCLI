@@ -29,6 +29,8 @@ def parse() :
     parser.add_argument('--inseecode', '-ic', dest='inseecode', default=None, help='the Insee Code of the city, this option is to be used in case of ambiguity, when the city name provided, or guessed by ip localisation match with more than one city name')
     parser.add_argument('--summary', '-s', dest='summary', action='count', help='summary view, i.e. gives all data received from server in a synthetic way')
     parser.add_argument('--log', '-l', metavar='log_level', dest='loglevel', choices=['CRITICAL', 'ERROR', 'WARNING', 'INFO', 'DEBUG'], default='INFO', help='set the log level DEBUG, INFO, WARNING, ERROR or CRITICAL')
+    parser.add_argument('--html', dest='html_output', default=False, action='store_true', help='send output to the browser (chrome)')
+    parser.add_argument('--noterm', dest='terminal_output', default=True, action='store_false', help='do not write output to stdout')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s 0.9')
     return parser.parse_args()
 
@@ -90,6 +92,8 @@ def getDataFromMeteoFranceAPI( iCityInseeCode ):
     response = urlopen(url)
     data = json.load(response)
     logging.debug("meteofrance getDetail API answer\n" + json.dumps(data))
+    #pp = pprint.PrettyPrinter(indent=2)
+    #pp.pprint(data)
     return data
 
 #Build the right output screen with details at day level, period level, and range of our level, refining data when available
@@ -255,9 +259,11 @@ def executeScript(iArgs):
 
     data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], iArgs.inseecode)
     data = getDataFromMeteoFranceAPI(data['insee'])
-    formatOutputForTerminal(iArgs, data)
-    cleanData = buildCleanObject(iArgs, data)
-    formatOutputForWeb(iArgs, cleanData)
+    if iArgs.terminal_output:
+        formatOutputForTerminal(iArgs, data)
+    if iArgs.html_output:
+        cleanData = buildCleanObject(iArgs, data)
+        formatOutputForWeb(iArgs, cleanData)
 
 # Example of dummy function to test pytest - TO BE REMOVED ONCE pytest well integrated
 def func(x):
