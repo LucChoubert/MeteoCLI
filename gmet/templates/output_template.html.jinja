@@ -2,7 +2,7 @@
 <html lang="fr">
 <head>
     <meta charset="utf-8">
-    <title>Prévision Météo -- {{nom}} ({{numDept}} - {{pays}})</title>
+    <title>Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</title>
     <style>
       font-family: Arial, Helvetica, sans-serif;
       border-collapse: collapse;
@@ -10,7 +10,7 @@
 
      td, th {
       border: 1px solid #ddd;
-      padding: 8px;
+      padding: 15px;
     }
 
     tr:nth-child(even){background-color: #f2f2f2;}
@@ -28,12 +28,12 @@
 
 <body>
 
-<h1 style="font-weight:bold;text-align:center;">Prévision Météo -- {{nom}} ({{numDept}} - {{pays}})</h1>
-<table style="border-collapse: collapse; width: 54.3866%;" border="1">
+<h1 style="font-weight:bold;text-align:left;">Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</h1>
+<table style="border-collapse: collapse;width:400px;" border="1">
 <tbody>
 <tr>
 {% for t in titles %}
-  <th style="width: 15%;"><strong>{{t}}</strong></th>
+  <th>{{t}}</th>
 {% endfor %}
 </tr>
 
@@ -49,24 +49,24 @@
         color:green;
       {% endif %}
 ">
-  <td style="width: 15%;">{{p.date}}</td>
-  <td style="width: 15%;">{{p.description}}</td>
-  <td style="width: 15%;">{{p.temperatureMin}} - {{p.temperatureMax}}</td>
-  <td style="width: 15%;"></td>
-  <td style="width: 15%;"></td>
+  <td>{{p.date}}</td>
+  <td>{{p.description}}</td>
+  <td>{{p.temperatureMin}} - {{p.temperatureMax}}</td>
+  <td></td>
+  <td></td>
 </tr>
   {% for r in p.timeranges %}
   <tr style="text-align:right;">
-    <td style="width: 15%;">{{r._timerange}}</td>
-    <td style="width: 15%;">{{r.description}}</td>
+    <td>{{r._timerange}}</td>
+    <td>{{r.description}}</td>
     {% if r.temperature %}
-      <td style="width: 15%;">{{r.temperature}}</td>
+      <td>{{r.temperature}}</td>
     {% endif %}
     {% if r.temperatureMin and r.temperatureMax %}
-      <td style="width: 15%;">{{r.temperatureMin}} - {{r.temperatureMax}}</td>
+      <td>{{r.temperatureMin}} - {{r.temperatureMax}}</td>
     {% endif %}
-    <td style="width: 15%;">{{r.vitesseVent}}</td>
-    <td style="width: 15%;">{{r.probaPluie}}</td>
+    <td>{{r.vitesseVent}}</td>
+    <td>{{r.probaPluie}}</td>
   </tr>
   {% endfor %}
 {% endfor %}

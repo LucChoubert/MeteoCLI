@@ -166,7 +166,7 @@ def buildCleanObject(iConfig, iData):
         'nomDept':    iData['result']['ville']['nomDept'],
         'region':     iData['result']['ville']['region'],
         'pays':       iData['result']['ville']['pays'],
-        'titles':     ["Date", "Temps", "Température", "Vent", "Pluie"],
+        'titles':     ["Date", "Temps", "Température", "Vent", "Pluie (%)"],
         'previsions': []
         }
     
