@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="fr">
+<head>
+    <meta charset="utf-8">
+    <title>Meteo forecast -- {{nom}} ({{numDept}} - {{pays}})</title>
+</head>
+
+<body>
+
+<h1><strong>Meteo forecast -- {{nom}} ({{numDept}} - {{pays}})</strong></h1>
+
+<p>&nbsp;</p>
+<table style="border-collapse: collapse; width: 54.3866%;" border="1">
+<tbody>
+<tr>
+{% for t in titles %}
+  <th style="width: 15%;"><strong>{{t}}</strong></th>
+{% endfor %}
+</tr>
+
+{% for p in previsions %}
+<tr style="font-weight:bold;text-align:center;
+      {% if "pluie" in p.description|lower %}
+        color:blue;
+       {% elif "averse" in p.description|lower %}
+        color:blue;
+       {% elif "soleil" in p.description|lower %}
+        color:orange;
+       {% else %}
+        color:green;
+      {% endif %}
+">
+  <td style="width: 15%;">{{p.date}}</td>
+  <td style="width: 15%;">{{p.description}}</td>
+  <td style="width: 15%;">{{p.temperatureMin}} - {{p.temperatureMax}}</td>
+  <td style="width: 15%;"></td>
+  <td style="width: 15%;"></td>
+</tr>
+  {% for r in p.timeranges %}
+  <tr style="text-align:right;">
+    <td style="width: 15%;">{{r._timerange}}</td>
+    <td style="width: 15%;">{{r.description}}</td>
+    {% if r.temperature %}
+      <td style="width: 15%;">{{r.temperature}}</td>
+    {% endif %}
+    {% if r.temperatureMin and r.temperatureMax %}
+      <td style="width: 15%;">{{r.temperatureMin}} - {{r.temperatureMax}}</td>
+    {% endif %}
+    <td style="width: 15%;">{{r.vitesseVent}}</td>
+    <td style="width: 15%;">{{r.probaPluie}}</td>
+  </tr>
+  {% endfor %}
+{% endfor %}
+</tbody>
+</table>
+<p>&nbsp;</p>
+
+</body>
+
+</html>

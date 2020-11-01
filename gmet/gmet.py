@@ -1,3 +1,4 @@
+import os
 import re
 import json
 import time
@@ -5,6 +6,8 @@ import datetime
 import argparse
 import logging
 from urllib.request import urlopen
+from jinja2 import Environment, PackageLoader, select_autoescape
+import pprint
 
 #Color definitions
 CFLASH =  '\033[7;1m' # White Background, Bold black Text
@@ -145,11 +148,99 @@ def formatOutputForTerminal(iConfig, iData):
                 
                     for keyPrevisions48h in l:
                         if keyPrevisions48h in iData['result']['previsions48h']:
-                            print('  * {:>5} | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[2:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
+                            print(' * {:>5}h | {:<17} | T: {:>2}-{:>2} | V: {:<3} Pluie?: {:>2}%'.format(keyPrevisions48h[2:], iData['result']['previsions48h'][keyPrevisions48h]['description'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'], iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'], iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'], iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']))
                             detailDisplayed = True
 
                     if not detailDisplayed:
                         print(' -> {:>5} | {:<17} | T: {:^6}| V: {:<3}'.format(r, iData['result']['previsions'][keyPrevisions]['description'], iData['result']['previsions'][keyPrevisions]['temperatureCarte'], iData['result']['previsions'][keyPrevisions]['vitesseVent']))
+
+#Build the right output screen with details at day level, period level, and range of our level, refining data when available
+def buildCleanObject(iConfig, iData):
+    aData = {
+        'nom':        iData['result']['ville']['nom'],
+        'numDept':    iData['result']['ville']['numDept'],
+        'nomDept':    iData['result']['ville']['nomDept'],
+        'region':     iData['result']['ville']['region'],
+        'pays':       iData['result']['ville']['pays'],
+        'titles':     ["Date", "Temps", "Température", "Vent", "Pluie"],
+        'previsions': []
+        }
+    
+    #Go throught the 10 days of daily prevision in resumes section
+    myRange = range(0, 100)
+    
+
+    #Do the actual display
+    for i in myRange:
+        keyResumes = str(i)+'_resume'
+        if keyResumes in iData['result']['resumes']:
+            timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
+            aData['previsions'].append( {
+                'date':          timeString,
+                'description':    iData['result']['resumes'][keyResumes]['description'],
+                'temperatureMin': iData['result']['resumes'][keyResumes]['temperatureMin'],
+                'temperatureMax': iData['result']['resumes'][keyResumes]['temperatureMax'],
+                'timeranges': []
+            } )
+
+        #Then, display the prevision "by range matin, midi, soir, nuit" in previsions section
+        for r in ['matin', 'midi', 'soir', 'nuit']:
+            keyPrevisions = str(i)+'_'+r
+            if keyPrevisions in iData['result']['previsions']:
+                detailDisplayed = False
+                l = []
+                if r == 'matin':
+                    l = [str(i) + '_' + x for x in ['07-10', '10-13']]
+                if r == 'midi':
+                    l = [str(i) + '_' + x for x in ['13-16', '16-19']]
+                if r == 'soir':
+                    l = [str(i) + '_' + x for x in ['19-22']]
+                if r == 'nuit':
+                    l = [str(i) + '_' + x for x in ['22-01']] + [str(i+1) + '_' + x for x in ['01-04', '04-07']]                
+                
+                for keyPrevisions48h in l:
+                    if keyPrevisions48h in iData['result']['previsions48h']:
+                        aData['previsions'][-1]['timeranges'].append( {
+                            '_timerange':               keyPrevisions48h[2:]+'h',
+                            'description':    iData['result']['previsions48h'][keyPrevisions48h]['description'],
+                            'temperatureMin': iData['result']['previsions48h'][keyPrevisions48h]['temperatureMin'],
+                            'temperatureMax': iData['result']['previsions48h'][keyPrevisions48h]['temperatureMax'],
+                            'vitesseVent':    iData['result']['previsions48h'][keyPrevisions48h]['vitesseVent'],
+                            'probaPluie':     iData['result']['previsions48h'][keyPrevisions48h]['probaPluie']
+                        } )
+                        #Uncomment the below to remove duplicate data and only keep the more precised one
+                        detailDisplayed = True
+
+                if not detailDisplayed:
+                    aData['previsions'][-1]['timeranges'].append( {
+                        '_timerange':            r,
+                        'description':      iData['result']['previsions'][keyPrevisions]['description'],
+                        'temperature':      iData['result']['previsions'][keyPrevisions]['temperatureCarte'],
+                        'vitesseVent':      iData['result']['previsions'][keyPrevisions]['vitesseVent']
+                        } )
+    #pp = pprint.PrettyPrinter(indent=2)
+    #pp.pprint(iConfig)
+    #pp.pprint(aData)
+    return aData
+
+#Build the HTML output screen with details at day level, period level, and range of our level, refining data when available
+def formatOutputForWeb(iConfig, iCleanData):
+    env = Environment(
+        loader=PackageLoader('gmet', 'templates'),
+        autoescape=select_autoescape(['html', 'xml'])
+        )
+    template = env.get_template('output_template.html.jinja')
+
+    filename = "output.html"
+    try:
+        os.remove(filename)
+    except:
+        pass
+    f = open(filename, 'w')
+    f.write(template.render(iCleanData))
+    f.close()
+    os.system("chromium "+filename)
+    
 
 def executeScript(iArgs):
     data = {}
@@ -165,6 +256,8 @@ def executeScript(iArgs):
     data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], iArgs.inseecode)
     data = getDataFromMeteoFranceAPI(data['insee'])
     formatOutputForTerminal(iArgs, data)
+    cleanData = buildCleanObject(iArgs, data)
+    formatOutputForWeb(iArgs, cleanData)
 
 # Example of dummy function to test pytest - TO BE REMOVED ONCE pytest well integrated
 def func(x):
