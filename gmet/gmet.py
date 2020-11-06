@@ -9,6 +9,7 @@ from urllib.request import urlopen
 from jinja2 import Environment, PackageLoader, select_autoescape
 import pprint
 
+
 #Color definitions
 CFLASH =  '\033[7;1m' # White Background, Bold black Text
 CGREEN =  '\033[32;1m' # Green Bold Text
@@ -22,7 +23,7 @@ CEND = '\033[0m' # reset to the defaults
 #-s summary view i.e. display all data received in a summarised manner
 #-m select meteo server source / default is meteofrance. Other sources are ...
 #-h print this help
-def parse() :
+def parse(iArgs=None) :
     parser = argparse.ArgumentParser(description='Command Line utility to access Meteo data from various sources')
     parser.add_argument('offset', nargs='*', type=int, help='offset in days compared to today, i.e. 0 means today, 1 means tomorrow,...')
     parser.add_argument('--city', '-c', dest='city', help='the City name for which we want weather forecast, if no value is provided, automatically guessed via the geolocalized IP adress')
@@ -32,7 +33,7 @@ def parse() :
     parser.add_argument('--html', dest='html_output', default=False, action='store_true', help='send output to the browser (chrome)')
     parser.add_argument('--noterm', dest='terminal_output', default=True, action='store_false', help='do not write output to stdout')
     parser.add_argument('--version', '-v', action='version', version='%(prog)s 0.9')
-    return parser.parse_args()
+    return parser.parse_args(iArgs)
 
 
 #function to localize the computer
@@ -92,7 +93,7 @@ def getDataFromMeteoFranceAPI( iCityInseeCode ):
     response = urlopen(url)
     data = json.load(response)
     logging.debug("meteofrance getDetail API answer\n" + json.dumps(data))
-    #pp = pprint.PrettyPrinter(indent=2)
+    pp = pprint.PrettyPrinter(indent=2)
     #pp.pprint(data)
     return data
 
@@ -235,15 +236,17 @@ def formatOutputForWeb(iConfig, iCleanData):
         )
     template = env.get_template('output_template.html.jinja')
 
-    filename = "output.html"
-    try:
-        os.remove(filename)
-    except:
-        pass
-    f = open(filename, 'w')
-    f.write(template.render(iCleanData))
-    f.close()
-    os.system("chromium "+filename)
+    return template.render(iCleanData)
+
+    # filename = "output.html"
+    # try:
+    #     os.remove(filename)
+    # except:
+    #     pass
+    # f = open(filename, 'w')
+    # f.write(template.render(iCleanData))
+    # f.close()
+    # os.system("chromium "+filename)
     
 
 def executeScript(iArgs):
@@ -264,6 +267,22 @@ def executeScript(iArgs):
     if iArgs.html_output:
         cleanData = buildCleanObject(iArgs, data)
         formatOutputForWeb(iArgs, cleanData)
+
+def executeWeb(iArgs):
+    data = {}
+    if iArgs.city is None:
+        logging.debug("No city, trying to localize")
+        data = localize()
+        logging.debug(data)
+    else:
+        data['ip'] = None
+        data['city'] = iArgs.city
+
+
+    data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], iArgs.inseecode)
+    data = getDataFromMeteoFranceAPI(data['insee'])
+    cleanData = buildCleanObject(iArgs, data)
+    return formatOutputForWeb(iArgs, cleanData)
 
 # Example of dummy function to test pytest - TO BE REMOVED ONCE pytest well integrated
 def func(x):
@@ -289,3 +308,25 @@ def run():
     except ValueError as error:
         logging.debug("Exception Catched:"+str(type(error)))
         exit(1)
+
+def runWeb(iCity=None):
+
+    aCity='Biot'
+
+    if iCity is not None:
+        aCity=iCity
+
+    #Decode command line options
+    args = parse(['--html', '--city', aCity])
+
+    #Below format is more for server / long running process like a daemon
+    #log_format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s'
+
+    #Below format is more for a short living script
+    log_format='%(levelname)s:%(message)s'
+    logging.basicConfig(format=log_format,
+                        datefmt='%d/%m/%Y %H:%M:%S',
+    #                   filename=args.log_file,
+                        level=args.loglevel)
+
+    return executeWeb(args)
