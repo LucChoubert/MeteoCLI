@@ -1,0 +1,19 @@
+#Documentation ere
+# https://docs.microsoft.com/en-us/azure/app-service/quickstart-python?tabs=bash&pivots=python-framework-flask
+#
+
+#Create or start. Is sku required?
+az webapp up --sku F1 --name MeteoLuc
+
+# Define python version
+az webapp config set  --name MeteoLuc --linux-fx-version "PYTHON|3.8"
+
+# Configure startup script
+az webapp config set --name MeteoLuc --startup-file "startup.sh"
+
+# To restart the webapp after reconfiguration
+az webapp up
+
+# To stream logs
+az webapp log tail
+

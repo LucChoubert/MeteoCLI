@@ -1,3 +1,5 @@
+#Can be started with gunicorn --bind=0.0.0.0 --timeout 600 gmet:app
+
 import os
 import re
 import json
@@ -37,18 +39,21 @@ def parse(iArgs=None) :
 
 
 #function to localize the computer
-def localize() :
-    url = 'http://ipinfo.io/json'
+def localize(iIP=None) :
+    url = 'http://ipinfo.io'
+    if iIP is not None and not iIP.startswith("127") and not iIP.startswith("192.168") and not iIP.startswith("172.16"):
+        url = url+'/'+iIP
+    logging.debug(url)
     response = urlopen(url)
     data = json.load(response)
 
-    d = dict()
-    d['ip'] = data['ip']
-    d['city'] = data['city']
-    d['zip'] = data['postal']
-    d['country'] = data['country']
+    # d = dict()
+    # d['ip'] = data['ip']
+    # d['city'] = data['city']
+    # d['zip'] = data['postal']
+    # d['country'] = data['country']
 
-    return d
+    return data
 
 #function to get INSEE code of the city
 #TODO: error management vie exception
@@ -58,8 +63,8 @@ def getInseeCode(iCityName, iInseeCode=None):
     data = json.load(response)
     logging.debug("meteofrance getLieux API answer\n" + json.dumps(data))
     if ( len(data['result']['france']) == 0):
-        logging.error('Error - Input City name is unknown: '+iCityName)
-        raise ValueError('Error - Input City name is unknown: '+iCityName)
+        logging.error('Unknown Input City name: '+iCityName)
+        raise ValueError('Unknown Input City name: '+iCityName)
     else:
         #The following code support case where one insee code is returned or when several are returned like in antibes
         #In case of ambiguity, libe with bordeaux, the additional iInseeCode may be used if provided, if not, firt one is used and the rest are logged
@@ -73,15 +78,15 @@ def getInseeCode(iCityName, iInseeCode=None):
                     candidate_list[e['codePostal']] = [e['indicatif'], e['nom'], e['codePostal'], e['nomDept'],e['numDept'], e['pays']]
 
         if ( len(candidate_list) == 0):
-            logging.error('Error - Input Insee code is not compatible with City name: '+iCityName+' vs '+iInseeCode)
-            raise ValueError('Error - Input Insee code is not compatible with City name: '+iCityName+' vs '+iInseeCode)
+            logging.error('Input Insee code is not compatible with City name: '+iCityName+' vs '+iInseeCode)
+            raise ValueError('Input Insee code is not compatible with City name: '+iCityName+' vs '+iInseeCode)
 
         if len(candidate_list) > 1:
             #More than one city is matching: log all choices and select arbitrarily the first one
-            logging.warning("More than one city correspond to that name, meteo retrieved from 1st one only. Use inseecode argument to change it")
-            logging.warning("InseeCode - City - Zip Code - Department Name")
+            logging.warning("More than one city is matching name => meteo retrieved for 1st one only. Use inseecode argument to change it")
+            logging.debug("InseeCode - City - Zip Code - Department Name")
             for e in candidate_list:
-                logging.warning(candidate_list[e][0]+' - '+candidate_list[e][1]+' - '+candidate_list[e][2]+' - '+candidate_list[e][3])
+                logging.debug(candidate_list[e][0]+' - '+candidate_list[e][1]+' - '+candidate_list[e][2]+' - '+candidate_list[e][3])
 
         k = list(candidate_list)[0]
         return candidate_list[k]
@@ -237,16 +242,6 @@ def formatOutputForWeb(iConfig, iCleanData):
     template = env.get_template('output_template.html.jinja')
 
     return template.render(iCleanData)
-
-    # filename = "output.html"
-    # try:
-    #     os.remove(filename)
-    # except:
-    #     pass
-    # f = open(filename, 'w')
-    # f.write(template.render(iCleanData))
-    # f.close()
-    # os.system("chromium "+filename)
     
 
 def executeScript(iArgs):
@@ -266,20 +261,38 @@ def executeScript(iArgs):
         formatOutputForTerminal(iArgs, data)
     if iArgs.html_output:
         cleanData = buildCleanObject(iArgs, data)
-        formatOutputForWeb(iArgs, cleanData)
+        aOutput_html = formatOutputForWeb(iArgs, cleanData)
+        filename = "output.html"
+        try:
+            os.remove(filename)
+        except:
+            pass
+        f = open(filename, 'w')
+        f.write(aOutput_html)
+        f.close()
+        os.system("chromium "+filename)
 
-def executeWeb(iArgs):
+def executeWeb(iArgs, iIP=None):
     data = {}
     if iArgs.city is None:
         logging.debug("No city, trying to localize")
-        data = localize()
-        logging.debug(data)
+        data = localize(iIP)
+        data['insee'] = None
+        if 'bogon' in data:
+            data['city'] = "Paris"
+            data['insee'] = "751010"
     else:
         data['ip'] = None
         data['city'] = iArgs.city
+        data['insee'] = iArgs.inseecode
 
-
-    data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], iArgs.inseecode)
+    try:
+        data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], data['insee'])
+    except:
+        data['ip'] = None
+        data['city'] = "Paris"
+        data['insee'] = "751010"
+        data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], data['insee'])
     data = getDataFromMeteoFranceAPI(data['insee'])
     cleanData = buildCleanObject(iArgs, data)
     return formatOutputForWeb(iArgs, cleanData)
@@ -309,24 +322,27 @@ def run():
         logging.debug("Exception Catched:"+str(type(error)))
         exit(1)
 
-def runWeb(iCity=None):
-
-    aCity='Biot'
+def runWeb(iIP=None, iCity=None):
 
     if iCity is not None:
-        aCity=iCity
+        args = parse(['--html', '--city', iCity])
+    elif iIP is not None:
+        args = parse(['--html'])
+    else:
+        #Default value just in case
+        args = parse(['--html', '--city', 'Paris'])
 
-    #Decode command line options
-    args = parse(['--html', '--city', aCity])
-
+    #Initialize Logging System
     #Below format is more for server / long running process like a daemon
     #log_format='%(asctime)s %(module)s.%(funcName)s:%(levelname)s:%(message)s'
 
     #Below format is more for a short living script
-    log_format='%(levelname)s:%(message)s'
+    log_format='%(asctime)s %(levelname)s:%(message)s'
     logging.basicConfig(format=log_format,
                         datefmt='%d/%m/%Y %H:%M:%S',
     #                   filename=args.log_file,
                         level=args.loglevel)
 
-    return executeWeb(args)
+    logging.info("From {0} with arguments {1}".format(str(iIP), str(iCity)))
+
+    return executeWeb(args, iIP)
