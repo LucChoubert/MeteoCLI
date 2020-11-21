@@ -20,8 +20,10 @@ def favicon():
 @app.route('/')
 @app.route('/<city>')
 def meteo(city=None):
-    aCallingIP = request.headers['X-Client-Ip']
-    #aCallingIP = request.remote_addr
+    if 'X-Client-Ip' in request.headers:
+        aCallingIP = request.headers['X-Client-Ip']
+    else:
+        aCallingIP = request.remote_addr
     return gmet.runWeb(iIP=aCallingIP, iCity=city, )
 
 @app.route('/debug')
