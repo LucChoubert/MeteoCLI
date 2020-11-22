@@ -4,76 +4,85 @@
     <meta charset="utf-8">
     <meta http-equiv="refresh" content="3600">
     <title>Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</title>
-    <style>
-      font-family: Arial, Helvetica, sans-serif;
-      border-collapse: collapse;
-      width: 100%;
-
-     td, th {
-      border: 1px solid #ddd;
-      padding: 15px;
-    }
-
-    tr:nth-child(even){background-color: #f2f2f2;}
-    tr:hover {background-color: #ddd;}
-
-    th {
-      padding-top: 12px;
-      padding-bottom: 12px;
-      text-align: left;
-      background-color: #4CAF50;
-      color: white;
-    }
-    </style>
+    <link rel="stylesheet" href="https://stackpath.bootstrapcdn.com/bootstrap/4.3.1/css/bootstrap.min.css" integrity="sha384-ggOyR0iXCbMQv3Xipma34MD+dH/1fQ784/j6cY/iJTQUOhcWr7x9JvoRxT2MZw1T" crossorigin="anonymous">
 </head>
 
 <body>
 
-<h1 style="font-weight:bold;text-align:left;">Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</h1>
-<table style="border-collapse: collapse;width:400px;" border="1">
-<tbody>
-<tr>
-{% for t in titles %}
-  <th>{{t}}</th>
-{% endfor %}
-</tr>
+<div class="container-fluid">
+  <div class="row">
+        <div class="col-auto">
+          <h1>Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</h1>
+    </div>
+  </div>
+  <div class="row">
 
-{% for p in previsions %}
-<tr style="font-weight:bold;text-align:center;
-      {% if "pluie" in p.description|lower %}
-        color:blue;
-       {% elif "averse" in p.description|lower %}
-        color:blue;
-       {% elif "soleil" in p.description|lower %}
-        color:orange;
-       {% else %}
-        color:green;
-      {% endif %}
-">
-  <td>{{p.date}}</td>
-  <td>{{p.description}}</td>
-  <td>{{p.temperatureMin}} - {{p.temperatureMax}}</td>
-  <td></td>
-  <td></td>
-</tr>
-  {% for r in p.timeranges %}
-  <tr style="text-align:right;">
-    <td>{{r._timerange}}</td>
-    <td>{{r.description}}</td>
-    {% if r.temperature %}
-      <td>{{r.temperature}}</td>
-    {% endif %}
-    {% if r.temperatureMin and r.temperatureMax %}
-      <td>{{r.temperatureMin}} - {{r.temperatureMax}}</td>
-    {% endif %}
-    <td>{{r.vitesseVent}}</td>
-    <td>{{r.probaPluie}}</td>
-  </tr>
-  {% endfor %}
-{% endfor %}
-</tbody>
-</table>
+    <!--First Column-->
+    <div class="col-1">Accés fréquents:
+      <ul>
+        <li><a href="https://meteoluc.azurewebsites.net/biot">Biot</a></li>
+        <li><a href="https://meteoluc.azurewebsites.net/ustaritz">Ustaritz</a></li>
+        <li><a href="https://meteoluc.azurewebsites.net/eysines">Eysines</a></li>
+    </ul>
+    </div>
+                
+    <!--Main Column-->
+    <div class="col-auto">
+      <table class="table table-dark table-striped table-bordered table-sm table-responsive">
+      <tbody>
+      <tr>
+      {% for t in titles %}
+        <th>{{t}}</th>
+      {% endfor %}
+      </tr>
 
+      {% for p in previsions %}
+      <tr style="font-weight:bold;text-align:center;
+            {% if "pluie" in p.description|lower %}
+              color:blue;
+            {% elif "averse" in p.description|lower %}
+              color:blue;
+            {% elif "soleil" in p.description|lower %}
+              color:orange;
+            {% else %}
+              color:green;
+            {% endif %}
+      ">
+        <td>{{p.date}}</td>
+        <td>{{p.description}}</td>
+        <td>{{p.temperatureMin}} - {{p.temperatureMax}}</td>
+        <td></td>
+        <td></td>
+      </tr>
+        {% for r in p.timeranges %}
+        <tr style="text-align:right;">
+          <td>{{r._timerange}}</td>
+          <td>{{r.description}}</td>
+          {% if r.temperature %}
+            <td>{{r.temperature}}</td>
+          {% endif %}
+          {% if r.temperatureMin and r.temperatureMax %}
+            <td>{{r.temperatureMin}} - {{r.temperatureMax}}</td>
+          {% endif %}
+          <td>{{r.vitesseVent}}</td>
+          <td>{{r.probaPluie}}</td>
+        </tr>
+        {% endfor %}
+      {% endfor %}
+      </tbody>
+      </table>
+
+    </div>
+    
+    <!--Last Column-->
+    <div class="col">Liens utiles:
+      <ul>
+        <li><a href="https://meteofrance.com/">Météo France</a></li>
+        <li><a href="https://openweathermap.org/">Open Weather Map</a></li>
+      </ul>
+    </div>
+  </div>
+</div>
 </body>
 
 </html>
