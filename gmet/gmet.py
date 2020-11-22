@@ -12,6 +12,9 @@ from jinja2 import Environment, PackageLoader, select_autoescape
 import pprint
 
 
+# Request Cache
+cacheRequests = {}
+
 #Color definitions
 CFLASH =  '\033[7;1m' # White Background, Bold black Text
 CGREEN =  '\033[32;1m' # Green Bold Text
@@ -234,14 +237,13 @@ def buildCleanObject(iConfig, iData):
     return aData
 
 #Build the HTML output screen with details at day level, period level, and range of our level, refining data when available
-def formatOutputForWeb(iConfig, iCleanData):
+def formatOutputForWeb(iConfig, iCleanData, iFrequentRequests=None):
     env = Environment(
         loader=PackageLoader('gmet', 'templates'),
         autoescape=select_autoescape(['html', 'xml'])
         )
     template = env.get_template('output_template.html.jinja')
-
-    return template.render(iCleanData)
+    return template.render(iCleanData, frequents=iFrequentRequests)
     
 
 def executeScript(iArgs):
@@ -295,7 +297,26 @@ def executeWeb(iArgs, iIP=None):
         data['insee'], data['city'], data['zip'], data['depName'], data['depNum'], data['country'] = getInseeCode(data['city'], data['insee'])
     data = getDataFromMeteoFranceAPI(data['insee'])
     cleanData = buildCleanObject(iArgs, data)
-    return formatOutputForWeb(iArgs, cleanData)
+    cacheCityRequested(cleanData['nom'])
+    return formatOutputForWeb(iArgs, cleanData, getFrequentRequests())
+
+def cacheCityRequested(iCity):
+    if iCity in cacheRequests:
+        cacheRequests[iCity] += 1
+    else:
+        cacheRequests[iCity] = 1
+
+def getFrequentRequests():
+    cacheRequestsItems = sorted(cacheRequests.items() , reverse=True, key=lambda x: x[1])
+    cacheRequestsLists = [i[0] for i in cacheRequestsItems]
+    cacheRequestsLists = cacheRequestsLists[:47]
+
+    lucFavorites = ['Ustaritz', 'Eysines', 'Biot']
+    for aCity in lucFavorites:
+        if aCity not in cacheRequestsLists:
+            cacheRequestsLists.insert(0,aCity)
+
+    return cacheRequestsLists
 
 # Example of dummy function to test pytest - TO BE REMOVED ONCE pytest well integrated
 def func(x):

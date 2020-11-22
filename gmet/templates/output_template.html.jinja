@@ -9,20 +9,23 @@
 
 <body>
 
-<div class="container-fluid">
+<div class="container-fluid text-light bg-dark">
   <div class="row">
-        <div class="col-auto">
-          <h1>Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</h1>
+    <div class="col-1"></div>
+    <div class="col-auto">
+      <h1>Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</h1>
     </div>
+    <div class="col-1"></div>
   </div>
   <div class="row">
 
     <!--First Column-->
     <div class="col-1">Accés fréquents:
       <ul>
-        <li><a href="https://meteoluc.azurewebsites.net/biot">Biot</a></li>
-        <li><a href="https://meteoluc.azurewebsites.net/ustaritz">Ustaritz</a></li>
-        <li><a href="https://meteoluc.azurewebsites.net/eysines">Eysines</a></li>
+        <li><a href="/">Géolocalisé</a></li>
+        {% for f in frequents %}
+          <li><a href="/{{f}}">{{f}}</a></li>
+        {% endfor %}
     </ul>
     </div>
                 
@@ -77,8 +80,8 @@
     <!--Last Column-->
     <div class="col">Liens utiles:
       <ul>
-        <li><a href="https://meteofrance.com/">Météo France</a></li>
-        <li><a href="https://openweathermap.org/">Open Weather Map</a></li>
+        <li><a href="https://meteofrance.com/" target="_blank">Météo France</a></li>
+        <li><a href="https://openweathermap.org/" target="_blank">Open Weather Map</a></li>
       </ul>
     </div>
   </div>
