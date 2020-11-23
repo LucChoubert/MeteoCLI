@@ -11,16 +11,16 @@
 
 <div class="container-fluid text-light bg-dark">
   <div class="row">
-    <div class="col-1"></div>
+    <div class="col-2"></div>
     <div class="col-auto">
       <h1>Prévision Météo -- {{nom}} ({{numDept}}{% if pays != "France" %} - {{pays}}{% endif %})</h1>
     </div>
-    <div class="col-1"></div>
+    <div class="col-2"></div>
   </div>
   <div class="row">
 
     <!--First Column-->
-    <div class="col-1">Accés fréquents:
+    <div class="col-2">Accés fréquents:
       <ul>
         <li><a href="/">Géolocalisé</a></li>
         {% for f in frequents %}
@@ -42,13 +42,13 @@
       {% for p in previsions %}
       <tr style="font-weight:bold;text-align:center;
             {% if "pluie" in p.description|lower %}
-              color:blue;
+              color:Navy;
             {% elif "averse" in p.description|lower %}
-              color:blue;
+              color:Navy;
             {% elif "soleil" in p.description|lower %}
-              color:orange;
+              color:Yellow;
             {% else %}
-              color:green;
+              color:Azure;
             {% endif %}
       ">
         <td>{{p.date}}</td>
@@ -78,7 +78,7 @@
     </div>
     
     <!--Last Column-->
-    <div class="col">Liens utiles:
+    <div class="col-2">Liens utiles:
       <ul>
         <li><a href="https://meteofrance.com/" target="_blank">Météo France</a></li>
         <li><a href="https://openweathermap.org/" target="_blank">Open Weather Map</a></li>
