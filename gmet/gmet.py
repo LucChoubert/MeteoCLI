@@ -7,6 +7,7 @@ import time
 import datetime
 import argparse
 import logging
+import locale
 from urllib.request import urlopen
 from jinja2 import Environment, PackageLoader, select_autoescape
 import pprint
@@ -101,7 +102,8 @@ def getDataFromMeteoFranceAPI( iCityInseeCode ):
     response = urlopen(url)
     data = json.load(response)
     logging.debug("meteofrance getDetail API answer\n" + json.dumps(data))
-    pp = pprint.PrettyPrinter(indent=2)
+    # Uncomment the below to dump the raw data fom Meteo France
+    #pp = pprint.PrettyPrinter(indent=2)
     #pp.pprint(data)
     return data
 
@@ -128,7 +130,7 @@ def formatOutputForTerminal(iConfig, iData):
     for i in myRange:
         keyResumes = str(i)+'_resume'
         if keyResumes in iData['result']['resumes']:
-            timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
+            timeString = time.strftime("%a-%d%b", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
             #TODO: Change the color Orange/Blue/Green based on the prevision (sun or rain) available in variable iData['result']['resumes'][keyResumes]['description']
             #BLUE if contains pluie or averse
             #ORANGE if contains soleil or ??
@@ -186,8 +188,14 @@ def buildCleanObject(iConfig, iData):
     #Do the actual display
     for i in myRange:
         keyResumes = str(i)+'_resume'
-        if keyResumes in iData['result']['resumes']:
-            timeString = time.strftime("%d%b-%a", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
+        if keyResumes in iData['result' ]['resumes']:
+            # get current locale
+            loc = locale.getlocale()
+            # Force locale to French
+            locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
+            timeString = time.strftime("%a - %d %b", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
+            # restore saved locale
+            locale.setlocale(locale.LC_ALL, loc)
             aData['previsions'].append( {
                 'date':          timeString,
                 'description':    iData['result']['resumes'][keyResumes]['description'],
