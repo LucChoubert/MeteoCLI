@@ -9,6 +9,14 @@
 
 <body>
 
+<script>
+function goVille() {
+  if(event.key === 'Enter') {
+    window.open(document.getElementById("ville").value, "_self");
+  }
+}
+</script>
+
 <div class="container-fluid text-light bg-dark">
   <div class="row">
     <div class="col-2"></div>
@@ -26,7 +34,10 @@
         {% for f in frequents %}
           <li><a href="/{{f}}">{{f}}</a></li>
         {% endfor %}
-    </ul>
+      </ul>
+      <br><br>
+        <label for="ville">Accés à une ville:</label>
+        <input type="text" class="form-control form-control-sm" id="ville" name="ville" onkeydown="goVille()" value="">
     </div>
                 
     <!--Main Column-->
@@ -78,7 +89,10 @@
     </div>
     
     <!--Last Column-->
-    <div class="col-2">Liens utiles:
+    <div class="col-2">
+      Extrait a: <time> {{meteoDateTime}} </time>
+      <br><br>
+      Liens utiles:
       <ul>
         <li><a href="https://meteofrance.com/" target="_blank">Météo France</a></li>
         <li><a href="https://openweathermap.org/" target="_blank">Open Weather Map</a></li>

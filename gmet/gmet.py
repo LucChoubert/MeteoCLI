@@ -172,15 +172,16 @@ def formatOutputForTerminal(iConfig, iData):
 #Build the right output screen with details at day level, period level, and range of our level, refining data when available
 def buildCleanObject(iConfig, iData):
     aData = {
-        'nom':        iData['result']['ville']['nom'],
-        'numDept':    iData['result']['ville']['numDept'],
-        'nomDept':    iData['result']['ville']['nomDept'],
-        'region':     iData['result']['ville']['region'],
-        'pays':       iData['result']['ville']['pays'],
-        'titles':     ["Date", "Temps", "Température", "Vent", "Pluie (%)"],
+        'nom':           iData['result']['ville']['nom'],
+        'numDept':       iData['result']['ville']['numDept'],
+        'nomDept':       iData['result']['ville']['nomDept'],
+        'region':        iData['result']['ville']['region'],
+        'pays':          iData['result']['ville']['pays'],
+        'meteoDateTime': datetime.datetime.now().strftime("%H:%M %d%b"),
+        'titles':        ["Date", "Temps", "Température", "Vent", "Pluie (%)"],
         'previsions': []
         }
-    
+
     #Go throught the 10 days of daily prevision in resumes section
     myRange = range(0, 100)
     
@@ -192,7 +193,18 @@ def buildCleanObject(iConfig, iData):
             # get current locale
             loc = locale.getlocale()
             # Force locale to French
-            locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
+            try:
+                #print(locale.locale_alias)
+                #locale.setlocale(locale.LC_ALL, 'fr_fr.ISO8859-1')
+                #locale.setlocale(locale.LC_ALL, 'eu_FR.ISO8859-1')
+                locale.setlocale(locale.LC_ALL, 'fr_FR.UTF-8')
+            except:
+                try:
+                    locale.setlocale(locale.LC_ALL, 'fr_FR.ISO8859-1')
+                except:
+                    print("Erreur de LOCALE")
+                    pass
+                pass
             timeString = time.strftime("%a - %d %b", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
             # restore saved locale
             locale.setlocale(locale.LC_ALL, loc)
@@ -321,8 +333,9 @@ def getFrequentRequests():
 
     lucFavorites = ['Ustaritz', 'Eysines', 'Biot']
     for aCity in lucFavorites:
-        if aCity not in cacheRequestsLists:
-            cacheRequestsLists.insert(0,aCity)
+        if aCity in cacheRequestsLists:
+            cacheRequestsLists.remove(aCity)
+        cacheRequestsLists.insert(0,aCity)
 
     return cacheRequestsLists
 
