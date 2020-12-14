@@ -1,0 +1,13 @@
+apiVersion: v1
+kind: Service
+metadata:
+  name: meteocli
+  namespace: default
+spec:
+  type: NodePort
+  selector:
+    app: meteocli
+  ports:
+  - protocol: TCP
+    port: 8000
+    targetPort: 8000
