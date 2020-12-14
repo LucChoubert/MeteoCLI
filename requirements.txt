@@ -2,3 +2,4 @@ Flask>=1.0,<=1.1.2
 datetime
 argparse
 jinja2
+gunicorn

@@ -207,7 +207,10 @@ def buildCleanObject(iConfig, iData):
                 pass
             timeString = time.strftime("%a - %d %b", time.gmtime(iData['result']['resumes'][keyResumes]['date'] / 1000))
             # restore saved locale
-            locale.setlocale(locale.LC_ALL, loc)
+            try:
+                locale.setlocale(locale.LC_ALL, loc)
+            except:
+                pass
             aData['previsions'].append( {
                 'date':          timeString,
                 'description':    iData['result']['resumes'][keyResumes]['description'],
