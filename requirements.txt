@@ -3,3 +3,4 @@ datetime
 argparse
 jinja2
 gunicorn
+jproperties

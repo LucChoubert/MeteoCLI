@@ -1,6 +1,7 @@
 #Can be started with gunicorn --bind=0.0.0.0 --timeout 600 gmet:app
 
 import os
+import sys
 import re
 import json
 import time
@@ -10,6 +11,7 @@ import logging
 import locale
 from urllib.request import urlopen
 from jinja2 import Environment, PackageLoader, select_autoescape
+from jproperties import Properties
 import pprint
 
 
@@ -329,13 +331,26 @@ def cacheCityRequested(iCity):
     else:
         cacheRequests[iCity] = 1
 
+def getFavorites():
+    configs = Properties()
+
+    try:
+        with open('config/config.ini', 'rb') as config_file:
+            configs.load(config_file)
+        my_list = configs.get("favorites").data.replace(" ", "").split(',')
+        return my_list
+    except :
+        return ['Biot', 'Eysines', 'Ustaritz']
+    
+
 def getFrequentRequests():
     cacheRequestsItems = sorted(cacheRequests.items() , reverse=True, key=lambda x: x[1])
     cacheRequestsLists = [i[0] for i in cacheRequestsItems]
     cacheRequestsLists = cacheRequestsLists[:47]
 
-    lucFavorites = ['Ustaritz', 'Eysines', 'Biot']
-    for aCity in lucFavorites:
+    favorites = getFavorites()
+    favorites.reverse()
+    for aCity in favorites:
         if aCity in cacheRequestsLists:
             cacheRequestsLists.remove(aCity)
         cacheRequestsLists.insert(0,aCity)
