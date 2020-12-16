@@ -1,0 +1,32 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: meteocli
+  labels:
+    app: meteocli
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: meteocli
+  template:
+    metadata:
+      labels:
+        app: meteocli
+    spec:
+      containers:
+        - name: meteocli
+          image: docker.io/lucchoubert/meteocli:latest
+          imagePullPolicy: Always
+          ports:
+            - containerPort: 80
+          volumeMounts:
+          - name: config
+            mountPath: "/app/config"
+            readOnly: true
+      volumes:
+        # You set volumes at the Pod level, then mount them into containers inside that Pod
+        - name: config
+          configMap:
+            # Provide the name of the ConfigMap you want to mount.
+            name: meteocli
